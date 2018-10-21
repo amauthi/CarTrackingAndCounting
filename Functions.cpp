@@ -13,12 +13,17 @@ std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_conve
 {
 	std::vector<cv::Point> cars_coordinates;
 	
+//	std::cout << "after init cars_coord vect" << std::endl;
 	// create a copy of frame_diff to ensure that the original is not modified by findContours
 	cv::Mat frame_diff_copy = frame_diff.clone();
 
 	//		1. find the contours of the image
 	std::vector<std::vector<cv::Point> > contours;
+//	std::cout << "after init contours" << std::endl;
+	
 	cv::findContours(frame_diff_copy, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+//	std::cout << "after using FindContours" << std::endl;
 
 	// show what we get (no needed because with convexHull, we will redraw on final image)
 	//cv::drawContours(frame_final, contours, -1, cv::Scalar(0, 0, 255), -1);
@@ -27,14 +32,19 @@ std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_conve
 	// we have to declare convexHulls after we use findContours, because we need the final size of findcontours
 	std::vector<std::vector<cv::Point> > convexHulls(contours.size());
 
+//	std::cout << "after init convexHulls" << std::endl;
+
 	for (unsigned int i = 0; i < contours.size(); i++) 
 	{
 		cv::convexHull(contours[i], convexHulls[i]);
 	}
 
+//	std::cout << "after using convexHulls" << std::endl;
+
 	// show what we get
 	cv::drawContours(frame_convex, convexHulls, -1, cv::Scalar(0, 255, 0), -1);
 
+//	std::cout << "after DRAWING ON Frame_convex" << std::endl;
 
 	//		3. trace the shape of the contours on the final frame
 	for (int i = 0; i < convexHulls.size(); i++)
@@ -58,6 +68,8 @@ std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_conve
 		cars_coordinates.push_back(center);
 	}
 
+//	std::cout << "after parcouring convexHulls" << std::endl;
+
 //	for (int i = 0; i < cars_coordinates.size(); i++)
 //		std::cout << "cars_coordinates[" << i << "] = " << cars_coordinates[i] << std::endl;
 //	std::cout << std::endl;
@@ -66,26 +78,27 @@ std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_conve
 //	std::cout << std::endl;
 
 	//		4. calling of counting_crossline methode
-		// we add this condition to be sure that we had time to fill the old coordinates 
-		if (frame_number > 1)
+	// we add this condition to be sure that we had time to fill the old coordinates 
+	if (frame_number > 1)
+	{
+		for (int i = 0; i < cars_coordinates.size(); i++)
 		{
-			for (int i = 0; i < cars_coordinates.size(); i++)
-			{
-		//		printf("i = %d, pointCar.x = %d, pointCar.y = %d\n", i, cars_coordinates[i].x, cars_coordinates[i].y);
-		//		printf("i = %d, pointCar_old.x = %d, pointCar_old.y = %d\n", i, old_cars_coordinates[i].x, old_cars_coordinates[i].y);
-		//		printf("\n");
+	//		printf("i = %d, pointCar.x = %d, pointCar.y = %d\n", i, cars_coordinates[i].x, cars_coordinates[i].y);
+	//		printf("i = %d, pointCar_old.x = %d, pointCar_old.y = %d\n", i, old_cars_coordinates[i].x, old_cars_coordinates[i].y);
+	//		printf("\n");
 
-				// we search in the old_cars_coord vector which center is closed to the center of cars_coord (meaning they belong to the same car)
-				// we then compare the two inside function counting_crossline
-				for (int j = 0; j < old_cars_coordinates.size(); j++)
-				{
-					if(abs(old_cars_coordinates[j].x-cars_coordinates[i].x) <distance_old_new && abs(old_cars_coordinates[j].y - cars_coordinates[i].y) <distance_old_new)
-						counting_crossline(pointA_line, pointB_line, cars_coordinates[i], old_cars_coordinates[j]);
-				}
+			// we search in the old_cars_coord vector which center is closed to the center of cars_coord (meaning they belong to the same car)
+			// we then compare the two inside function counting_crossline
+			for (int j = 0; j < old_cars_coordinates.size(); j++)
+			{
+				if(abs(old_cars_coordinates[j].x-cars_coordinates[i].x) <distance_old_new && abs(old_cars_coordinates[j].y - cars_coordinates[i].y) <distance_old_new)
+					counting_crossline(pointA_line, pointB_line, cars_coordinates[i], old_cars_coordinates[j]);
 			}
 		}
-
+	}
+//	std::cout << "after calling couting_crossline" << std::endl;
 	print_compters(compteur1, compteur2, frame_final);
+//	std::cout << "after calling print_compters" << std::endl;
 	return cars_coordinates;
 }
 
@@ -138,5 +151,3 @@ void print_compters(int compteur1, int compteur2, cv::Mat frame_final)
 	cv::putText(frame_final, compt1, cv::Point(10, 30), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0, 0, 255, 255));
 	cv::putText(frame_final, compt2, cv::Point(500, 480), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0, 0, 255, 255));
 }
-
-
