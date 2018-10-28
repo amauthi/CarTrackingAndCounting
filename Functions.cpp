@@ -46,7 +46,8 @@ std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_conve
 
 //	std::cout << "after DRAWING ON Frame_convex" << std::endl;
 
-	//		3. trace the shape of the contours on the final frame
+	//		3. trace the shape of the contours on the final frame 
+	// TODO : find a way to remove contours that are outside of the roads
 	for (int i = 0; i < convexHulls.size(); i++)
 	{
 		// get the x and y of the rectangle we get from the contour
