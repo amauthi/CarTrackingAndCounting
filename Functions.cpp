@@ -2,14 +2,58 @@
 
 #include "Functions.h"
 #include <string>
+#include "Road.h"
 
 // variables for counting cars crossing the line drawed by user
 int compteur1 = 0; int compteur2 = 0;
 
+
+// this function returns true if center.x and center.y inside the roads, false if else
+bool computing_inside_outside_roads(Road road1, Road road2, cv::Point center)
+{
+	printf("road1.line1.pointA = (%d, %d)\n", road1.line1.pointA.x, road1.line1.pointA.y);
+	printf("road1.line1.pointB = (%d, %d)\n\n", road1.line1.pointB.x, road1.line1.pointB.y);
+
+	printf("road1.line2.pointA = (%d, %d)\n", road1.line2.pointA.x, road1.line2.pointA.y);
+	printf("road1.line2.pointB = (%d, %d)\n\n", road1.line2.pointB.x, road1.line2.pointB.y);
+	
+	printf("road2.line1.pointA = (%d, %d)\n", road2.line1.pointA.x, road2.line1.pointA.y);
+	printf("road2.line1.pointB = (%d, %d)\n\n", road2.line1.pointB.x, road2.line1.pointB.y);
+	
+	printf("road2.line2.pointA = (%d, %d)\n", road2.line2.pointA.x, road2.line2.pointA.y);
+	printf("road2.line2.pointB = (%d, %d)\n\n", road2.line2.pointB.x, road1.line2.pointB.y);
+
+
+
+	printf("Equation of road1.line1 : y = %f*x + %f\n", road1.line1.a, road1.line1.b);
+	printf("Equation of road1.line2 : y = %f*x + %f\n", road1.line2.a, road1.line2.b);
+	printf("Equation of road2.line1 : y = %f*x + %f\n", road2.line1.a, road2.line1.b);
+	printf("Equation of road2.line2 : y = %f*x + %f\n", road2.line2.a, road2.line2.b);
+	
+	if (center.y > road1.line1.a *center.x + road1.line1.b && center.y < road1.line2.a*center.x + road1.line2.b)
+	{
+		std::cout << "inside road1" << std::endl;
+		printf("Center : x = %d, y = %d\n", center.x, center.y);
+		return true;
+	}
+	if (center.y < road2.line1.a* center.x + road2.line1.b && center.y > road2.line2.a* center.x + road2.line2.b)
+	{
+		std::cout << "inside road2" << std::endl;
+		printf("Center : x = %d, y = %d\n", center.x, center.y);
+		return true;
+	}
+	else
+	{
+		std::cout << "outside of the roads" << std::endl;
+		printf("Center : x = %d, y = %d\n", center.x, center.y);
+		return false;
+	}
+}
+
 // function that serve to track any car in frame_diff 
 // returns the list of the coordinates of the cars because we have to save these coordinates to compare them at the next frame to the new ones (to see if a car has crossed the border)
 
-std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_convex, cv::Mat frame_final, std::vector<cv::Point> old_cars_coordinates, cv::Point pointA_line, cv::Point pointB_line, int frame_number, int centers_printed, int distance_old_new)
+std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_convex, cv::Mat frame_final, std::vector<cv::Point> old_cars_coordinates, cv::Point pointA_line, cv::Point pointB_line, int frame_number, int centers_printed, int distance_old_new, Road road1, Road road2)
 {
 	std::vector<cv::Point> cars_coordinates;
 	
@@ -56,15 +100,51 @@ std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_conve
 		center.x = bounding_car.x + (bounding_car.width) / 2;
 		center.y = bounding_car.y + (bounding_car.height) / 2;
 
-		// draw on the image
-		cv::rectangle(frame_final, bounding_car, cv::Scalar(0, 0, 255), 2);
+// TODO		: if the coordinates of bounding_car are outside of the tracks drawed by user, then this bounding_car will not be showed
 		
-		// printf the centers of the cars (x in yellow and y in blue)
-		if (centers_printed == 1)
+		if (road1.road_shaped && road2.road_shaped)
 		{
-			cv::putText(frame_final, std::to_string(center.x), cv::Point(center.x - 50, center.y), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0, 255, 255));
-			cv::putText(frame_final, std::to_string(center.y), cv::Point(center.x + 50, center.y), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 0, 0));
+			printf("Before entering of computing_inside_outside_roads, Center : x = %d, y = %d\n", center.x, center.y);
+			// function that returns true if center.x and center.y inside the roads, false if else, we call the function once the roads have been drawned by the user
+			bool inside_road = computing_inside_outside_roads(road1, road2, center);
+			if (inside_road)
+			{
+				// draw on the image
+				cv::rectangle(frame_final, bounding_car, cv::Scalar(0, 0, 255), 2);
+				std::cout << "inside the roads, we draw on the image" << std::endl;
+
+				// printf the centers of the cars (x in yellow and y in blue)
+				if (centers_printed == 1)
+				{
+					cv::putText(frame_final, std::to_string(center.x), cv::Point(center.x - 50, center.y), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0, 255, 255));
+					cv::putText(frame_final, std::to_string(center.y), cv::Point(center.x + 50, center.y), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 0, 0));
+				}
+			}
+			else
+			{
+				std::cout << "we draw nothing because it was out of the tracks" << std::endl;
+			}
 		}
+		else
+		{
+			// if the roads are not yet shaped, we draw on the image
+			std::cout << "the roads are not yet shaped, we draw on the image" << std::endl;
+			cv::rectangle(frame_final, bounding_car, cv::Scalar(0, 0, 255), 2);
+
+			// printf the centers of the cars (x in yellow and y in blue)
+			if (centers_printed == 1)
+			{
+				cv::putText(frame_final, std::to_string(center.x), cv::Point(center.x - 50, center.y), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0, 255, 255));
+				cv::putText(frame_final, std::to_string(center.y), cv::Point(center.x + 50, center.y), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 0, 0));
+			}
+		}
+
+
+
+		// draw on the image
+//		cv::rectangle(frame_final, bounding_car, cv::Scalar(0, 0, 255), 2);
+		
+
 
 		cars_coordinates.push_back(center);
 	}
@@ -78,7 +158,7 @@ std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_conve
 //		std::cout << "old_cars_coordinates[" << i << "] = " << old_cars_coordinates[i] << std::endl;
 //	std::cout << std::endl;
 
-	//		4. calling of counting_crossline methode
+	//		4. calling of counting_crossline method
 	// we add this condition to be sure that we had time to fill the old coordinates 
 	if (frame_number > 1)
 	{
@@ -103,7 +183,7 @@ std::vector<cv::Point> tracking_function(cv::Mat frame_diff, cv::Mat frame_conve
 	return cars_coordinates;
 }
 
-// if a car croww the road, a counter must be incremented (2 conters because two roads)
+// if a car cross the road, a counter must be incremented (2 conters because two roads)
 void counting_crossline(cv::Point pointA_line, cv::Point pointB_line, cv::Point pointCar, cv::Point pointCar_old)
 {
 	if (abs(pointA_line.x - pointB_line.x) < 50 && abs(pointA_line.y - pointB_line.y) > 200)
@@ -152,3 +232,23 @@ void print_compters(int compteur1, int compteur2, cv::Mat frame_final)
 	cv::putText(frame_final, compt1, cv::Point(10, 30), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0, 0, 255, 255));
 	cv::putText(frame_final, compt2, cv::Point(500, 480), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0, 0, 255, 255));
 }
+
+// this function will draw a road, ie : two lines that represent the external shape of the road
+// only if an object is detected inside this shape will it be taken into account
+// the goal is to avoid false detection outside the roas due to the fact that the video is not stable
+void draw_road(cv::Mat image, cv::Point pt1, cv::Point pt2, cv::Point pt3, cv::Point pt4, int road_number)
+{
+	if (road_number == 1)
+	{
+		// two lines to draw the shape of a road (blue)
+		cv::line(image, pt1, pt2, cv::Scalar(255, 0, 0));
+		cv::line(image, pt3, pt4, cv::Scalar(255, 0, 0));
+	}
+	if (road_number == 2)
+	{
+		// two lines to draw the shape of a road (blue)
+		cv::line(image, pt1, pt2, cv::Scalar(0, 255, 0));
+		cv::line(image, pt3, pt4, cv::Scalar(0, 255, 0));
+	}
+}
+
